@@ -74,57 +74,54 @@ class VolumeFootprintEngine:
     # ===================================================================
     # 1. Tick Velocity (burst detection)
     # ===================================================================
+
     def _tick_velocity(self, ticks: pd.DataFrame, candle_duration: str = '5min') -> pd.DataFrame:
-    """
-    Detect institutional bursts using inter-arrival time compression
-    and price acceleration (no clustering).
-    """
+        """Detect institutional bursts using inter-arrival compression (no clustering)"""
 
-    df = ticks.copy()
+        df = ticks.copy()
 
-    # --- Core temporal features ---
-    df['delta_ms'] = df.index.to_series().diff().dt.total_seconds() * 1000
-    df['delta_ms'] = df['delta_ms'].fillna(1000)
+        # --- Time delta (ms) ---
+        df['delta_ms'] = df.index.to_series().diff().dt.total_seconds() * 1000
+        df['delta_ms'] = df['delta_ms'].fillna(1000)
 
-    # --- Price dynamics ---
-    df['price_diff'] = df['price'].diff().fillna(0)
-    df['acceleration'] = df['price_diff'].diff().fillna(0)
+        # --- Price dynamics ---
+        df['price_diff'] = df['price'].diff().fillna(0)
+        df['acceleration'] = df['price_diff'].diff().fillna(0)
 
-    # --- Rolling baselines (adaptive thresholds) ---
-    rolling_window = 50  # tune this
-    df['delta_ms_avg'] = df['delta_ms'].rolling(rolling_window).mean().fillna(method='bfill')
-    df['delta_ms_std'] = df['delta_ms'].rolling(rolling_window).std().fillna(method='bfill')
+        # --- Rolling baseline ---
+        window = 50
+        df['delta_ms_avg'] = df['delta_ms'].rolling(window).mean().bfill()
+        df['delta_ms_std'] = df['delta_ms'].rolling(window).std().bfill()
 
-    # --- Burst detection logic ---
-    # Burst = unusually fast ticks + directional push
-    df['is_burst'] = (
-        (df['delta_ms'] < df['delta_ms_avg'] - df['delta_ms_std']) &
-        (np.abs(df['price_diff']) > 0)
-    ).astype(int)
+        # --- Burst condition ---
+        df['is_burst'] = (
+            (df['delta_ms'] < df['delta_ms_avg'] - df['delta_ms_std']) &
+            (df['price_diff'] != 0)
+        ).astype(int)
 
-    # --- Velocity proxy ---
-    df['velocity'] = df['price_diff'] / (df['delta_ms'] + 1)
+        # --- Velocity proxy ---
+        df['velocity'] = df['price_diff'] / (df['delta_ms'] + 1)
 
-    # --- Aggregate into footprint ---
-    footprint = df.groupby([
-        pd.Grouper(freq=candle_duration),
-        pd.Grouper(key='price', freq='0.0001')
-    ]).agg(
-        burst_count=('is_burst', 'sum'),
-        avg_intertick=('delta_ms', 'mean'),
-        tick_count=('price', 'count'),
-        avg_velocity=('velocity', 'mean'),
-        acceleration=('acceleration', 'mean')
-    ).reset_index()
+        # --- Aggregate into footprint ---
+        footprint = df.groupby([
+            pd.Grouper(freq=candle_duration),
+            pd.Grouper(key='price', freq='0.0001')
+        ]).agg(
+            burst_count=('is_burst', 'sum'),
+            avg_intertick=('delta_ms', 'mean'),
+            tick_count=('price', 'count'),
+            avg_velocity=('velocity', 'mean'),
+            acceleration=('acceleration', 'mean')
+        ).reset_index()
 
-    # --- Final score (cleaner than DBSCAN output) ---
-    footprint['velocity_score'] = (
-        footprint['burst_count'] *
-        np.abs(footprint['avg_velocity']) /
-        (footprint['avg_intertick'] + 1)
-    )
+        # --- Final score ---
+        footprint['velocity_score'] = (
+            footprint['burst_count'] *
+            np.abs(footprint['avg_velocity']) /
+            (footprint['avg_intertick'] + 1)
+        )
 
-    return footprint
+        return footprint
 
     # ===================================================================
     # Main unified method (used by dashboard)
