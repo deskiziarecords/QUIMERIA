@@ -1,4 +1,10 @@
 # frontend/poc_dashboard.py
+import sys
+from pathlib import Path
+
+# Add project root to Python path
+project_root = Path(__file__).parent.parent  # goes up from frontend/ to hyperion-hft-poc/
+sys.path.insert(0, str(project_root))
 import streamlit as st
 import pandas as pd
 import numpy as np
