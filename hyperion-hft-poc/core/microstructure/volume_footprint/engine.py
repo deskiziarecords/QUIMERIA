@@ -1,7 +1,6 @@
 # core/microstructure/volume_footprint/engine.py
 import pandas as pd
 import numpy as np
-from sklearn.cluster import DBSCAN
 from typing import Dict, Any, Optional
 import warnings
 warnings.filterwarnings("ignore")
