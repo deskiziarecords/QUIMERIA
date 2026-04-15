@@ -74,7 +74,7 @@ class VolumeFootprintEngine:
     # ===================================================================
     # 1. Tick Velocity (burst detection)
     # ===================================================================
-   def _tick_velocity(self, ticks: pd.DataFrame, candle_duration: str = '5min') -> pd.DataFrame:
+    def _tick_velocity(self, ticks: pd.DataFrame, candle_duration: str = '5min') -> pd.DataFrame:
     """
     Detect institutional bursts using inter-arrival time compression
     and price acceleration (no clustering).
