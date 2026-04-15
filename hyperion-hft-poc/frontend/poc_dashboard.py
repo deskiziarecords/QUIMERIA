@@ -77,11 +77,11 @@ footprints = volume_engine.generate_footprint(ohlc=ohlc, ticks=ticks, use_method
 
 # Enrich OHLC with synthetic volume
 
-    if 'enriched' in footprints and not footprints['enriched'].empty:
+if 'enriched' in footprints and not footprints['enriched'].empty:
     vol_series = footprints['enriched'].groupby('time')['volume'].mean()
     ohlc = ohlc.join(vol_series.rename('synthetic_volume'), how='left').fillna(method='ffill')
 # Run IPDA Phase Detection
-phased_df = ipda.detect_phases(ohlc)
+   phased_df = ipda.detect_phases(ohlc)
 
 # Run Reverse Period Detector (the sauce)
 enriched_df, reverse_metrics = reverse_det.detect(phased_df)
