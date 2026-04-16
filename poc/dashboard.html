@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CHIMERA // Execution System</title>
+    <style>
+        /* --- CORE SYSTEM VARIABLES --- */
+        :root {
+            --bg-dark: #0d1117;
+            --bg-panel: #161b22;
+            --bg-input: #0a0c10;
+            --border-color: #30363d;
+            
+            --text-main: #c9d1d9;
+            --text-dim: #8b949e;
+            --accent-blue: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-orange: #d29922;
+            --accent-red: #f85149;
+            --accent-purple: #a371f7;
+
+            --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        }
+
+        /* --- RESET & BASE --- */
+        * { box-sizing: border-box; outline: none; }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* --- TYPOGRAPHY --- */
+        h1, h2, h3, h4 { margin: 0; font-weight: 600; color: var(--text-main); }
+        .mono { font-family: var(--font-mono); }
+        .text-blue { color: var(--accent-blue); }
+        .text-green { color: var(--accent-green); }
+        .text-red { color: var(--accent-red); }
+        .text-orange { color: var(--accent-orange); }
+        .uppercase { text-transform: uppercase; letter-spacing: 1px; }
+
+        /* --- LAYOUT --- */
+        /* Sidebar Navigation */
+        aside {
+            width: 280px;
+            background-color: var(--bg-panel);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        .brand {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            background: #010409;
+        }
+        .brand span { font-size: 1.2rem; font-weight: bold; color: var(--text-main); }
+        .brand small { color: var(--text-dim); font-size: 0.7rem; display: block; }
+
+        .nav-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.5rem 0;
+        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-dark); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+        .nav-group-title {
+            padding: 0.8rem 1rem 0.4rem;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+
+        .nav-item {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-size: 0.85rem;
+            border-left: 2px solid transparent;
+            color: var(--text-dim);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .nav-item:hover {
+            background-color: rgba(88, 166, 255, 0.1);
+            color: var(--text-main);
+        }
+        .nav-item.active {
+            background-color: rgba(88, 166, 255, 0.15);
+            border-left-color: var(--accent-blue);
+            color: var(--accent-blue);
+            font-weight: bold;
+        }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border-color); }
+        .nav-item.active .status-dot { background: var(--accent-green); box-shadow: 0 0 5px var(--accent-green); }
+
+        /* Main Workspace */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* Header */
+        header {
+            height: 50px;
+            border-bottom: 1px solid var(--border-color);
+            background-color: var(--bg-panel);
+            display: flex;
+            align-items: center;
+            padding: 0 1.5rem;
+            justify-content: space-between;
+        }
+        .module-breadcrumbs { font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent-blue); }
+        .system-stats { display: flex; gap: 1rem; font-family: var(--font-mono); font-size: 0.75rem; }
+        .stat-box span { color: var(--text-dim); margin-right: 4px; }
+
+        /* Content Area */
+        .viewport {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-dark);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Generic Panel Styles */
+        .module-view {
+            display: none; /* Hidden by default */
+            height: 100%;
+            padding: 1.5rem;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .module-view.active { display: flex; }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            grid-template-rows: 60% 1fr;
+            gap: 1rem;
+            height: 100%;
+        }
+
+        .panel {
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            background-color: rgba(255,255,255,0.03);
+            padding: 0.5rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-body {
+            flex: 1;
+            position: relative;
+            padding: 1rem;
+            overflow: auto;
+        }
+
+        /* Visualization Containers */
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* Terminal / Logs */
+        .terminal {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            line-height: 1.4;
+            color: var(--text-main);
+            padding: 0.5rem;
+        }
+        .log-entry { margin-bottom: 2px; border-bottom: 1px solid rgba(48, 54, 61, 0.3); }
+        .log-ts { color: var(--accent-blue); margin-right: 8px; opacity: 0.7; }
+        .log-level-INFO { color: var(--accent-blue); }
+        .log-level-WARN { color: var(--accent-orange); }
+        .log-level-ERR { color: var(--accent-red); }
+
+        /* Wireshark-style Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+            font-family: var(--font-mono);
+        }
+        .data-table th { text-align: left; padding: 4px 8px; color: var(--text-dim); border-bottom: 1px solid var(--border-color); }
+        .data-table td { padding: 4px 8px; border-bottom: 1px solid #21262d; }
+        .data-table tr:hover { background-color: rgba(255,255,255,0.04); }
+
+        /* Hex Dump Visualization */
+        .hex-dump {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            display: grid;
+            grid-template-columns: 40px 1fr 1fr;
+            gap: 1rem;
+        }
+        .hex-address { color: var(--accent-purple); }
+        .hex-bytes { color: var(--accent-green); }
+
+        /* Utility Badges */
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.65rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .badge-green { background: rgba(63, 185, 80, 0.15); color: var(--accent-green); border: 1px solid rgba(63, 185, 80, 0.4); }
+        .badge-red { background: rgba(248, 81, 73, 0.15); color: var(--accent-red); border: 1px solid rgba(248, 81, 73, 0.4); }
+        .badge-blue { background: rgba(88, 166, 255, 0.15); color: var(--accent-blue); border: 1px solid rgba(88, 166, 255, 0.4); }
+
+    </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside>
+    <div class="brand">
+        <span>CHIMERA</span>
+        <small>SYS.VER.4.2.0 // POC</small>
+    </div>
+    <div class="nav-container" id="navList">
+        <!-- Navigation Generated via JS -->
+    </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main>
+    <header>
+        <div class="module-breadcrumbs" id="breadcrumbs">ROOT // SELECT_MODULE</div>
+        <div class="system-stats">
+            <div class="stat-box"><span>LATENCY:</span> <b class="text-green">14μs</b></div>
+            <div class="stat-box"><span>MEM:</span> <b class="text-blue">42%</b></div>
+            <div class="stat-box"><span>NET:</span> <b class="text-green">SECURE</b></div>
+        </div>
+    </header>
+
+    <div class="viewport">
+        
+        <!-- 1. SIGNAL GENERATION GROUP -->
+        
+        <!-- MODULE: Symbolic Encoder -->
+        <div id="view-symbolic" class="module-view">
+            <div class="dashboard-grid">
+                <div class="panel">
+                    <div class="panel-header"><span>Geometric Alphabet Stream</span> <span class="badge badge-blue">LIVE</span></div>
+                    <div class="panel-body" style="position:relative;">
+                        <canvas id="canvas-symbolic"></canvas>
+                        <div style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); padding: 5px; border: 1px solid #333;">
+                            <div class="mono" style="font-size: 0.8rem;">DECODER: [B, I, X, U, D, W, w]</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">ATR Normalization</div>
+                    <div class="panel-body">
+                        <div style="height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 10px;">
+                            <div class="mono">CURRENT ATR: <span class="text-blue" id="val-atr">0.0042</span></div>
+                            <div class="mono">N-CANDLE HEIGHT: <span class="text-green" id="val-nheight">0.82</span></div>
+                            <div style="border-top: 1px solid #333; padding-top:10px;">
+                                <div class="mono" style="color: #666; margin-bottom: 5px;">HEX DUMP (FRAME 0xA2)</div>
+                                <div class="hex-dump">
+                                    <div class="hex-address">0x0000</div>
+                                    <div class="hex-bytes">4F 42 49 58 55 44 57 77</div>
+                                    <div>OBIXUDWw</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel" style="grid-column: 1 / -1;">
+                    <div class="panel-header">Terminal Output</div>
+                    <div class="panel-body terminal" id="log-symbolic"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODULE: IPDA Phase Detector -->
+        <div id="view-ipda" class="module-view">
+            <div class="dashboard-grid">
+                <div class="panel" style="grid-column: 1 / -1; height: 60%;">
+                    <div class="panel-header"><span>Phase Detection (Lookbacks: 20, 40, 60)</span></div>
+                    <div class="panel-body">
+                        <canvas id="canvas-ipda"></canvas>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Current Phase</div>
+                    <div class="panel-body" style="display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                        <h1 id="phase-text" class="uppercase text-blue" style="font-size: 2rem;">ACCUMULATION</h1>
+                        <div style="width: 80%; height: 4px; background: #333; margin: 10px 0; position: relative;">
+                            <div style="position:absolute; left: 0; width: 33%; height: 100%; background: var(--accent-green); opacity: 0.5;"></div>
+                            <div style="position:absolute; left: 33%; width: 33%; height: 100%; background: var(--accent-orange); opacity: 0.5;"></div>
+                            <div style="position:absolute; left: 66%; width: 33%; height: 100%; background: var(--accent-red); opacity: 0.5;"></div>
+                        </div>
+                        <div class="mono" style="margin-top: 10px;">RANGE PRESSURE: <span class="text-red">HIGH</span></div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Terminal</div>
+                    <div class="panel-body terminal" id="log-ipda"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODULE: Harmonic Trap (HFT-7ZERO) -->
+        <div id="view-harmonic" class="module-view">
+            <div class="dashboard-grid">
+                <div class="panel" style="grid-column: 1 / -1;">
+                    <div class="panel-header"><span>Spectral Analysis (FFT Phase Inversion)</span></div>
+                    <div class="panel-body">
+                        <canvas id="canvas-harmonic"></canvas>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Trap Status</div>
+                    <div class="panel-body terminal">
+                        <div id="harmonic-status" class="mono text-green">NORMAL REGIME</div>
+                        <div class="mono">∠ PHASE SHIFT: <span id="val-phase">0.00</span> rad</div>
+                        <div class="mono">THRESHOLD: π/2 (1.57)</div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Terminal</div>
+                    <div class="panel-body terminal" id="log-harmonic"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODULE: FAISS Pattern Memory -->
+        <div id="view-faiss" class="module-view">
+            <div class="dashboard-grid">
+                <div class="panel" style="grid-column: 1 / -1;">
+                    <div class="panel-header"><span>Vector Database Search</span></div>
+                    <div class="panel-body" style="display: flex; justify-content: center;">
+                        <canvas id="canvas-faiss"></canvas>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Top K Matches</div>
+                    <div class="panel-body">
+                        <table class="data-table">
+                            <thead><tr><th>ID</th><th>SIM</th><th>WIN RATE</th></tr></thead>
+                            <tbody id="faiss-table">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Terminal</div>
+                    <div class="panel-body terminal" id="log-faiss"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODULE: Tick Velocity -->
+        <div id="view-tick" class="module-view">
+            <div class="dashboard-grid">
+                <div class="panel" style="grid-column: 1 / -1;">
+                    <div class="panel-header"><span>Inter-Tick Interval Density (DBSCAN Clustering)</span></div>
+                    <div class="panel-body">
+                        <canvas id="canvas-tick"></canvas>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Flow Analysis</div>
+                    <div class="panel-body terminal">
+                        <div class="mono">BURST DENSITY: <span class="text-orange" id="val-density">LOW</span></div>
+                        <div class="mono">CLUSTERS: <span id="val-clusters">0</span></div>
+                        <div class="mono">INSTITUTIONAL PREDICTION: <span class="text-green">NONE</span></div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Terminal</div>
+                    <div class="panel-body terminal" id="log-tick"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. ANALYTICAL & MATHEMATICAL ENGINES -->
+
+        <!-- MODULE: OBNFE -->
+        <div id="view-obnfe" class="module-view">
+            <div class="dashboard-grid">
+                <div class="panel" style="grid-column: 1 / -1;">
+                    <div class="panel-header"><span>Bayesian Network Fusion (Reverse Regime Detection)</span></div>
+                    <div class="panel-body">
+                        <canvas id="canvas-obnfe"></canvas>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">System State</div>
+                    <div class="panel-body terminal">
+                        <div id="obnfe-switch" class="badge badge-green" style="width: 100%; text-align: center; padding: 10px;">SYSTEM ACTIVE</div>
+                        <br><br>
+                        <div class="mono">TOXICITY PROB: <span id="val-toxic">0.04</span></div>
+                        <div class="mono">HISTORY PROTECTION: 16/16</div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Terminal</div>
+                    <div class="panel-body terminal" id="log-obnfe"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODULE: GMOS -->
+        <div id="view-gmos" class="module-view">
+            <div class="dashboard-grid">
+                <div class="panel" style="grid-column: 1 / -1;">
+                    <div class="panel-header"><span>Multi-Sensor Fusion (λ1–λ5)</span></div>
+                    <div class="panel-body">
+                        <canvas id="canvas-gmos"></canvas>
+                    </div>
+                </div>
+                <div class="panel" style="grid-column: 1 / -1; display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; padding: 10px;">
+                    <div style="text-align:center; border: 1px solid #333; padding: 5px;"><div class="mono">λ1</div><div class="text-green">OK</div></div>
+                    <div style="text-align:center; border: 1px solid #333; padding: 5px;"><div class="mono">λ2</div><div class="text-green">OK</div></div>
+                    <div style="text-align:center; border: 1px solid #333; padding: 5px;"><div class="mono">λ3</div><div class="text-orange">WARN</div></div>
+                    <div style="text-align:center; border: 1px solid #333; padding: 5px;"><div class="mono">λ4</div><div class="text-green">OK</div></div>
+                    <div style="text-align:center; border: 1px solid #333; padding: 5px;"><div class="mono">λ5</div><div class="text-green">OK</div></div>
+                </div>
+                <div class="panel" style="grid-column: 1 / -1;">
+                    <div class="panel-header">Terminal</div>
+                    <div class="panel-body terminal" id="log-gmos"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODULE: Adelic/Koopman -->
+        <div id="view-adelic" class="module-view">
+            <div class="dashboard-grid">
+                <div class="panel" style="grid-column: 1 / -1;">
+                    <div class="panel-header"><span>Manifold Consistency Check (Number Theory)</span></div>
+                    <div class="panel-body">
+                        <canvas id="canvas-adelic"></canvas>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Operator Analysis</div>
+                    <div class="panel-body terminal">
+                        <div class="mono">KOOPMAN EIGENVALUE: <span class="text-blue">0.994i</span></div>
+                        <div class="mono">ADELIC NORM: <span class="text-green">STABLE</span></div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Terminal</div>
+                    <div class="panel-body terminal" id="log-adelic"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODULE: TDA Hole Detector -->
+        <div id="view-tda" class="module-view">
+            <div class="dashboard-grid">
+                <div class="panel" style="grid-column: 1 / -1;">
+                    <div class="panel-header"><span>Liquidity Hole Detection (Ripser)</span></div>
+                    <div class="panel-body">
+                        <canvas id="canvas-tda"></canvas>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Topology Status</div>
+                    <div class="panel-body terminal">
+                        <div id="tda-status" class="mono text-green">MANIFOLD INTACT</div>
+                        <div class="mono">H0 HOLES: <span id="val-holes">0</span></div>
+                        <div class="mono">FRACTURE RISK: <span class="text-green">0.01%</span></div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Terminal</div>
+                    <div class="panel-body terminal" id="log-tda"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. RISK MANAGEMENT -->
+
+        <!-- MODULE: 6λ / 7λ Risk Gate -->
+        <div id="view-gate" class="module-view">
+            <div class="dashboard-grid">
+                <div class="panel" style="grid-column: 1 / -1;">
+                    <div class="panel-header"><span>Pre-Trade Risk Matrix</span></div>
+                    <div class="panel-body">
+                        <canvas id="canvas-gate"></canvas>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Gate Status</div>
+                    <div class="panel-body terminal">
+                        <div id="gate-lock" class="badge badge-red" style="width: 100%; text-align: center;">LOCKED</div>
+                        <br>
+                        <div class="mono">CONSOLIDATION DENSITY: <span class="text-orange">0.84</span></div>
+                        <div class="mono">STOP HUNT PROB: <span class="text-green">0.12</span></div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Terminal</div>
+                    <div class="panel-body terminal" id="log-gate"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODULE: λ7 Macro -->
+        <div id="view-macro" class="module-view">
+            <div class="dashboard-grid">
+                <div class="panel" style="grid-column: 1 / -1;">
+                    <div class="panel-header"><span>Macro Causality Matrix</span></div>
+                    <div class="panel-body">
+                        <canvas id="canvas-macro"></canvas>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Correlations</div>
+                    <div class="panel-body terminal">
+                        <div class="mono">DXY / EURUSD: <span class="text-red">-0.94</span></div>
+                        <div class="mono">VIX / SPX: <span class="text-orange">-0.82</span></div>
+                        <div class="mono">MACRO CHECK: <span class="text-green">PASS</span></div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Terminal</div>
+                    <div class="panel-body terminal" id="log-macro"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODULE: Bankruptcy Gate -->
+        <div id="view-bankruptcy" class="module-view">
+            <div class="dashboard-grid">
+                <div class="panel" style="grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; background: #000;">
+                    <canvas id="canvas-bankruptcy"></canvas>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Circuit Breaker</div>
+                    <div class="panel-body terminal">
+                        <div class="mono">FAILURE CASCADE: <span class="text-green">DETECTED</span></div>
+                        <div class="mono">GEOMETRY: <span class="text-green">INTACT</span></div>
+                        <button style="width:100%; background: #333; color: white; border: 1px solid #555; padding: 10px; cursor: pointer;">MANUAL RESET</button>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Terminal</div>
+                    <div class="panel-body terminal" id="log-bankruptcy"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. EXECUTION -->
+
+        <!-- MODULE: Schur Routing -->
+        <div id="view-schur" class="module-view">
+            <div class="dashboard-grid">
+                <div class="panel" style="grid-column: 1 / -1;">
+                    <div class="panel-header"><span>Adelic-Schur Decomposition Routing</span></div>
+                    <div class="panel-body">
+                        <canvas id="canvas-schur"></canvas>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Venue Allocation</div>
+                    <div class="panel-body terminal">
+                        <div class="mono">Binance: 45%</div>
+                        <div class="mono">Coinbase: 30%</div>
+                        <div class="mono">Kraken: 25%</div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Terminal</div>
+                    <div class="panel-body terminal" id="log-schur"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODULE: Stealth Executor -->
+        <div id="view-stealth" class="module-view">
+            <div class="dashboard-grid">
+                <div class="panel" style="grid-column: 1 / -1;">
+                    <div class="panel-header"><span>Order Fragmentation & Jitter</span></div>
+                    <div class="panel-body">
+                        <canvas id="canvas-stealth"></canvas>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Anti-Predation</div>
+                    <div class="panel-body terminal">
+                        <div class="mono">ADAPTIVE JITTER: <span class="text-blue" id="val-jitter">120μs</span></div>
+                        <div class="mono">DETECTION RISK: <span class="text-green">0.001%</span></div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Terminal</div>
+                    <div class="panel-body terminal" id="log-stealth"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODULE: io_uring -->
+        <div id="view-iouring" class="module-view">
+            <div class="dashboard-grid">
+                <div class="panel" style="grid-column: 1 / -1;">
+                    <div class="panel-header"><span>Zero-Copy I/O Fabric (Linux Native)</span></div>
+                    <div class="panel-body">
+                        <canvas id="canvas-iouring"></canvas>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Ring Buffer</div>
+                    <div class="panel-body terminal">
+                        <div class="mono">SQEs SUBMITTED: <span class="text-blue">402,102</span></div>
+                        <div class="mono">CQEs COMPLETED: <span class="text-green">402,100</span></div>
+                        <div class="mono text-red">DROPPED: 2</div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Terminal</div>
+                    <div class="panel-body terminal" id="log-iouring"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODULE: FIX Encoder -->
+        <div id="view-fix" class="module-view">
+            <div class="dashboard-grid">
+                <div class="panel" style="grid-column: 1 / -1;">
+                    <div class="panel-header"><span>FIX Protocol Serialization</span></div>
+                    <div class="panel-body">
+                        <canvas id="canvas-fix"></canvas>
+                    </div>
+                </div>
+                <div class="panel" style="grid-column: 1 / -1;">
+                    <div class="panel-header">Outbound Stream</div>
+                    <div class="panel-body terminal">
+                        <div class="text-green">8=FIX.4.2|35=D|49=CHIMERA|56=EXCH|11=10293|21=1|55=BTCUSD|54=1|38=0.5|40=2|</div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Latency</div>
+                    <div class="panel-body terminal">
+                        <div class="mono">ENCODE: <span class="text-blue">2μs</span></div>
+                        <div class="mono">TX: <span class="text-blue">4μs</span></div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">Terminal</div>
+                    <div class="panel-body terminal" id="log-fix"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<script>
+    /* --- CONFIGURATION & STATE --- */
+    const MODULES = [
+        { id: 'symbolic', name: 'Symbolic Encoder', group: 'Market Data & Signal' },
+        { id: 'ipda', name: 'IPDA Phase Detector', group: 'Market Data & Signal' },
+        { id: 'harmonic', name: 'Harmonic Trap (FFT)', group: 'Market Data & Signal' },
+        { id: 'faiss', name: 'FAISS Pattern Memory', group: 'Market Data & Signal' },
+        { id: 'tick', name: 'Tick Velocity', group: 'Market Data & Signal' },
+        
+        { id: 'obnfe', name: 'OBNFE Engine', group: 'Analytical Engines' },
+        { id: 'gmos', name: 'GMOS Fusion', group: 'Analytical Engines' },
+        { id: 'adelic', name: 'Adelic Validator', group: 'Analytical Engines' },
+        { id: 'tda', name: 'TDA Hole Detector', group: 'Analytical Engines' },
+        
+        { id: 'gate', name: '6λ/7λ Risk Gate', group: 'Risk Management' },
+        { id: 'macro', name: 'λ7 Macro Gate', group: 'Risk Management' },
+        { id: 'bankruptcy', name: 'Bankruptcy Gate', group: 'Risk Management' },
+        
+        { id: 'schur', name: 'Schur Routing', group: 'Execution' },
+        { id: 'stealth', name: 'Stealth Executor', group: 'Execution' },
+        { id: 'iouring', name: 'io_uring Fabric', group: 'Execution' },
+        { id: 'fix', name: 'FIX Encoder', group: 'Execution' }
+    ];
+
+    let currentModule = 'symbolic';
+    let simulationInterval = null;
+
+    /* --- NAVIGATION BUILDER --- */
+    const navList = document.getElementById('navList');
+    let currentGroup = '';
+
+    MODULES.forEach(mod => {
+        if (mod.group !== currentGroup) {
+            const title = document.createElement('div');
+            title.className = 'nav-group-title';
+            title.innerText = mod.group;
+            navList.appendChild(title);
+            currentGroup = mod.group;
+        }
+        const item = document.createElement('div');
+        item.className = 'nav-item';
+        item.dataset.id = mod.id;
+        item.innerHTML = `<span>${mod.name}</span> <div class="status-dot"></div>`;
+        item.onclick = () => switchModule(mod.id, mod.name);
+        navList.appendChild(item);
+    });
+
+    /* --- CORE LOGIC --- */
+    function switchModule(id, name) {
+        currentModule = id;
+        
+        // Update Nav UI
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        document.querySelector(`.nav-item[data-id="${id}"]`).classList.add('active');
+        
+        // Update Breadcrumbs
+        document.getElementById('breadcrumbs').innerText = `ROOT // ${name.toUpperCase()}`;
+
+        // Hide all views, show active
+        document.querySelectorAll('.module-view').forEach(el => el.classList.remove('active'));
+        document.getElementById(`view-${id}`).classList.add('active');
+
+        // Trigger Resize
+        resizeCanvas();
+    }
+
+    function resizeCanvas() {
+        const canvas = document.querySelector(`#view-${currentModule} canvas`);
+        if(canvas) {
+            const parent = canvas.parentElement;
+            canvas.width = parent.clientWidth;
+            canvas.height = parent.clientHeight;
+        }
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // Initial Resize
+    setTimeout(resizeCanvas, 100);
+
+    /* --- DATA GENERATORS & VISUALIZATIONS --- */
+    
+    // Generic Logger
+    function log(moduleName, msg, level='INFO') {
+        const el = document.getElementById(`log-${moduleName}`);
+        if (!el) return;
+        const div = document.createElement('div');
+        div.className = 'log-entry';
+        const ts = new Date().toISOString().split('T')[1].split('.')[0];
+        div.innerHTML = `<span class="log-ts">[${ts}]</span> <span class="log-level-${level}">${msg}</span>`;
+        el.prepend(div);
+        if (el.children.length > 20) el.lastChild.remove();
+    }
+
+    // 1. Symbolic Encoder Visualizer
+    const symbols = ['B','I','X','U','D','W','w'];
+    function drawSymbolic() {
+        const ctx = document.getElementById('canvas-symbolic').getContext('2d');
+        const w = ctx.canvas.width;
+        const h = ctx.canvas.height;
+        ctx.fillStyle = '#161b22'; ctx.fillRect(0,0,w,h);
+        
+        // Draw Grid
+        ctx.strokeStyle = '#30363d'; ctx.lineWidth = 1;
+        for(let i=0; i<w; i+=50) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,h); ctx.stroke(); }
+        
+        // Draw Random Stream
+        ctx.font = '20px Consolas';
+        let x = 20;
+        for(let i=0; i<w-50; i+=40) {
+            const s = symbols[Math.floor(Math.random()*symbols.length)];
+            ctx.fillStyle = (s==='X'||s==='U') ? '#d29922' : '#58a6ff';
+            ctx.fillText(s, x, h/2 + (Math.random()*40 - 20));
+            x+=40;
+        }
+        if(Math.random()>0.8) log('symbolic', `Encoded pattern chunk [0x${Math.floor(Math.random()*999).toString(16)}]`);
+    }
+
+    // 2. IPDA Visualizer (Zones)
+    function drawIPDA() {
+        const ctx = document.getElementById('canvas-ipda').getContext('2d');
+        const w = ctx.canvas.width;
+        const h = ctx.canvas.height;
+        
+        // Zones
+        const y20 = h*0.2; const y60 = h*0.6; // Accumulation
+        const y20_2 = h*0.25; const y60_2 = h*0.75; // Distribution
+        
+        ctx.fillStyle = 'rgba(63, 185, 80, 0.1)'; ctx.fillRect(0, 0, w, h*0.3); // Acc
+        ctx.fillStyle = 'rgba(210, 153, 34, 0.1)'; ctx.fillRect(0, h*0.3, w, h*0.4); // Man
+        ctx.fillStyle = 'rgba(248, 81, 73, 0.1)'; ctx.fillRect(0, h*0.7, w, h*0.3); // Dist
+
+        // Price Line
+        ctx.strokeStyle = '#c9d1d9'; ctx.lineWidth = 2; ctx.beginPath();
+        let y = h/2;
+        ctx.moveTo(0, y);
+        for(let x=0; x<w; x+=5) {
+            y += (Math.random()-0.5)*10;
+            ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+    }
+
+    // 3. Harmonic (Circle/Phase)
+    function drawHarmonic() {
+        const ctx = document.getElementById('canvas-harmonic').getContext('2d');
+        const w = ctx.canvas.width; const h = ctx.canvas.height;
+        const cx = w/2; const cy = h/2; const r = 100;
+        
+        ctx.clearRect(0,0,w,h);
+        
+        // Circle
+        ctx.strokeStyle = '#30363d'; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
+        
+        // Vector
+        const angle = Date.now() / 1000;
+        const tx = cx + Math.cos(angle)*r;
+        const ty = cy + Math.sin(angle)*r;
+        
+        ctx.strokeStyle = '#58a6ff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(tx, ty); ctx.stroke();
+        
+        // Threshold Line
+        ctx.strokeStyle = '#f85149'; ctx.beginPath(); ctx.moveTo(cx-r, cy); ctx.lineTo(cx+r, cy); ctx.stroke();
+        
+        document.getElementById('val-phase').innerText = Math.abs(angle % Math.PI).toFixed(2);
+    }
+
+    // 4. FAISS (Vector Space)
+    function drawFAISS() {
+        const ctx = document.getElementById('canvas-faiss').getContext('2d');
+        const w = ctx.canvas.width; const h = ctx.canvas.height;
+        ctx.fillStyle = '#000'; ctx.fillRect(0,0,w,h);
+        
+        // Points
+        for(let i=0; i<100; i++) {
+            const x = Math.random()*w;
+            const y = Math.random()*h;
+            ctx.fillStyle = '#30363d';
+            ctx.fillRect(x,y,2,2);
+        }
+        // Match Cluster
+        ctx.fillStyle = '#58a6ff';
+        for(let i=0; i<5; i++) {
+            const x = w/2 + (Math.random()-0.5)*50;
+            const y = h/2 + (Math.random()-0.5)*50;
+            ctx.beginPath(); ctx.arc(x,y,4,0,Math.PI*2); ctx.fill();
+        }
+        
+        // Update Table randomly
+        if(Math.random()>0.9) {
+            const tbody = document.getElementById('faiss-table');
+            tbody.innerHTML = `
+                <tr><td>ID_9921</td><td class="text-green">0.98</td><td>88%</td></tr>
+                <tr><td>ID_4412</td><td class="text-orange">0.85</td><td>72%</td></tr>
+                <tr><td>ID_1102</td><td>0.72</td><td>60%</td></tr>
+            `;
+        }
+    }
+
+    // 5. Tick Velocity (Histogram)
+    function drawTick() {
+        const ctx = document.getElementById('canvas-tick').getContext('2d');
+        const w = ctx.canvas.width; const h = ctx.canvas.height;
+        ctx.clearRect(0,0,w,h);
+        
+        ctx.fillStyle = '#30363d';
+        const bars = 20;
+        const bw = w/bars;
+        for(let i=0; i<bars; i++) {
+            const bh = Math.random() * h * 0.8;
+            ctx.fillRect(i*bw + 2, h-bh, bw-4, bh);
+        }
+        
+        document.getElementById('val-density').innerText = Math.random()>0.8 ? "HIGH BURST" : "LOW";
+    }
+
+    // 6. OBNFE (Line Chart)
+    function drawOBNFE() {
+        const ctx = document.getElementById('canvas-obnfe').getContext('2d');
+        const w = ctx.canvas.width; const h = ctx.canvas.height;
+        ctx.clearRect(0,0,w,h);
+        
+        ctx.strokeStyle = '#f85149'; ctx.lineWidth = 2; ctx.beginPath();
+        let y = h/2;
+        ctx.moveTo(0,y);
+        for(let x=0; x<w; x++) {
+            y = h - ((Math.sin(x/50) + 1)/2 * h * 0.8 + 20);
+            ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        
+        // Threshold line
+        ctx.strokeStyle = '#3fb950'; ctx.beginPath(); ctx.moveTo(0, h*0.2); ctx.lineTo(w, h*0.2); ctx.stroke();
+    }
+
+    // 7. GMOS (Radar-ish Bars)
+    function drawGMOS() {
+        const ctx = document.getElementById('canvas-gmos').getContext('2d');
+        const w = ctx.canvas.width; const h = ctx.canvas.height;
+        ctx.clearRect(0,0,w,h);
+        
+        const sensors = 5;
+        const sw = w/sensors;
+        for(let i=0; i<sensors; i++) {
+            const val = Math.random();
+            ctx.fillStyle = val > 0.8 ? '#f85149' : (val > 0.5 ? '#d29922' : '#3fb950');
+            const sh = val * h;
+            ctx.fillRect(i*sw + 10, h-sh, sw-20, sh);
+        }
+    }
+
+    // 8. Adelic (Manifold)
+    function drawAdelic() {
+        const ctx = document.getElementById('canvas-adelic').getContext('2d');
+        const w = ctx.canvas.width; const h = ctx.canvas.height;
+        ctx.clearRect(0,0,w,h);
+        
+        ctx.strokeStyle = '#a371f7'; ctx.lineWidth = 1;
+        ctx.beginPath();
+        for(let i=0; i<w; i+=5) {
+            const y = h/2 + Math.sin(i/20 + Date.now()/500)*50;
+            ctx.lineTo(i, y);
+        }
+        ctx.stroke();
+    }
+
+    // 9. TDA (Holes)
+    function drawTDA() {
+        const ctx = document.getElementById('canvas-tda').getContext('2d');
+        const w = ctx.canvas.width; const h = ctx.canvas.height;
+        ctx.clearRect(0,0,w,h);
+        
+        // Cloud
+        ctx.fillStyle = '#58a6ff';
+        for(let i=0; i<200; i++) {
+            const r = Math.random();
+            if(r > 0.1) {
+                ctx.fillRect(Math.random()*w, Math.random()*h, 2, 2);
+            }
+        }
+        // Hole visual
+        ctx.beginPath();
+        ctx.arc(w/2, h/2, 40, 0, Math.PI*2);
+        ctx.strokeStyle = '#f85149'; ctx.setLineDash([5,5]); ctx.stroke();
+        ctx.setLineDash([]);
+        
+        if(Math.random()>0.95) document.getElementById('val-holes').innerText = Math.floor(Math.random()*3);
+    }
+
+    // 10. Gate (Locks)
+    function drawGate() {
+        const ctx = document.getElementById('canvas-gate').getContext('2d');
+        const w = ctx.canvas.width; const h = ctx.canvas.height;
+        ctx.clearRect(0,0,w,h);
+        
+        const count = 10;
+        const gap = w/count;
+        
+        for(let i=0; i<count; i++) {
+            const open = Math.random() > 0.2;
+            ctx.fillStyle = open ? '#3fb950' : '#f85149';
+            ctx.fillRect(i*gap + 5, h/2 - 20, gap - 10, 40);
+            
+            // Label
+            ctx.fillStyle = '#fff';
+            ctx.font = '10px monospace';
+            ctx.fillText(`L${i+1}`, i*gap + 15, h/2 + 5);
+        }
+        
+        const isLocked = Math.random() > 0.5;
+        const badge = document.getElementById('gate-lock');
+        badge.className = isLocked ? 'badge badge-red' : 'badge badge-green';
+        badge.innerText = isLocked ? 'LOCKED' : 'OPEN';
+    }
+
+    // 11. Macro (Matrix)
+    function drawMacro() {
+        const ctx = document.getElementById('canvas-macro').getContext('2d');
+        const w = ctx.canvas.width; const h = ctx.canvas.height;
+        ctx.clearRect(0,0,w,h);
+        
+        ctx.strokeStyle = '#30363d';
+        const size = 5;
+        for(let i=0; i<w; i+=size) {
+            for(let j=0; j<h; j+=size) {
+                const val = Math.random();
+                if(val > 0.9) ctx.fillStyle = '#f85149';
+                else if(val > 0.7) ctx.fillStyle = '#58a6ff';
+                else ctx.fillStyle = '#0d1117';
+                ctx.fillRect(i,j,size-1,size-1);
+            }
+        }
+    }
+
+    // 12. Bankruptcy (Pulse)
+    function drawBankruptcy() {
+        const ctx = document.getElementById('canvas-bankruptcy').getContext('2d');
+        const w = ctx.canvas.width; const h = ctx.canvas.height;
+        ctx.clearRect(0,0,w,h);
+        
+        const t = Date.now() / 500;
+        const r = (Math.sin(t) + 1) * 100;
+        
+        ctx.strokeStyle = '#f85149'; ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.arc(w/2, h/2, r, 0, Math.PI*2); ctx.stroke();
+        
+        ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+        ctx.font = '30px monospace';
+        ctx.fillText("CRITICAL", w/2, h/2);
+    }
+
+    // 13. Schur (Network Map)
+    function drawSchur() {
+        const ctx = document.getElementById('canvas-schur').getContext('2d');
+        const w = ctx.canvas.width; const h = ctx.canvas.height;
+        ctx.clearRect(0,0,w,h);
+        
+        // Nodes
+        const nodes = [{x:50,y:h/2}, {x:w/2,y:50}, {x:w-50,y:h/2}, {x:w/2,y:h-50}];
+        ctx.fillStyle = '#58a6ff';
+        nodes.forEach(n => { ctx.beginPath(); ctx.arc(n.x, n.y, 10, 0, Math.PI*2); ctx.fill(); });
+        
+        // Packets
+        ctx.fillStyle = '#fff';
+        const t = (Date.now() / 20) % 360;
+        const rad = t * Math.PI / 180;
+        const px = w/2 + Math.cos(rad)*100;
+        const py = h/2 + Math.sin(rad)*100;
+        ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI*2); ctx.fill();
+    }
+
+    // 14. Stealth (Particles)
+    function drawStealth() {
+        const ctx = document.getElementById('canvas-stealth').getContext('2d');
+        const w = ctx.canvas.width; const h = ctx.canvas.height;
+        ctx.fillStyle = 'rgba(0,0,0,0.1)'; ctx.fillRect(0,0,w,h);
+        
+        ctx.fillStyle = '#3fb950';
+        for(let i=0; i<5; i++) {
+            const x = Math.random()*w;
+            const y = h - Math.random()*100;
+            ctx.fillRect(x, y, 2, 2);
+        }
+    }
+
+    // 15. io_uring (Queue)
+    function drawIouring() {
+        const ctx = document.getElementById('canvas-iouring').getContext('2d');
+        const w = ctx.canvas.width; const h = ctx.canvas.height;
+        ctx.clearRect(0,0,w,h);
+        
+        const barW = 10;
+        const count = Math.floor(w / (barW + 2));
+        
+        for(let i=0; i<count; i++) {
+            const type = Math.random();
+            if(type < 0.3) ctx.fillStyle = '#58a6ff'; // Submit
+            else ctx.fillStyle = '#3fb950'; // Complete
+            
+            ctx.fillRect(i*(barW+2), h/2, barW, (Math.random()-0.5)*50);
+        }
+    }
+
+    // 16. FIX (Stream)
+    function drawFIX() {
+        // This is mostly text, but we visualize a stream flow
+        const ctx = document.getElementById('canvas-fix').getContext('2d');
+        const w = ctx.canvas.width; const h = ctx.canvas.height;
+        ctx.clearRect(0,0,w,h);
+        
+        ctx.fillStyle = '#0d1117';
+        ctx.fillRect(0,0,w,h);
+        
+        ctx.font = '12px monospace';
+        ctx.fillStyle = '#3fb950';
+        const text = "8=FIX.4.2|35=D|49=CHIMERA|56=EXCH...";
+        const offset = (Date.now() / 10) % w;
+        ctx.fillText(text, w - offset, h/2);
+    }
+
+
+    /* --- MAIN LOOP --- */
+    function animate() {
+        switch(currentModule) {
+            case 'symbolic': drawSymbolic(); break;
+            case 'ipda': drawIPDA(); break;
+            case 'harmonic': drawHarmonic(); break;
+            case 'faiss': drawFAISS(); break;
+            case 'tick': drawTick(); break;
+            case 'obnfe': drawOBNFE(); break;
+            case 'gmos': drawGMOS(); break;
+            case 'adelic': drawAdelic(); break;
+            case 'tda': drawTDA(); break;
+            case 'gate': drawGate(); break;
+            case 'macro': drawMacro(); break;
+            case 'bankruptcy': drawBankruptcy(); break;
+            case 'schur': drawSchur(); break;
+            case 'stealth': drawStealth(); break;
+            case 'iouring': drawIouring(); break;
+            case 'fix': drawFIX(); break;
+        }
+        
+        // Update Random Values for Text Displays
+        if(Math.random() > 0.9) {
+            document.getElementById('val-atr').innerText = (0.004 + Math.random()*0.001).toFixed(4);
+            document.getElementById('val-jitter').innerText = Math.floor(50 + Math.random()*450) + "μs";
+        }
+        
+        requestAnimationFrame(animate);
+    }
+
+    // Start
+    document.querySelector('.nav-item').click(); // Select first
+    animate();
+
+</script>
+</body>
+</html>
